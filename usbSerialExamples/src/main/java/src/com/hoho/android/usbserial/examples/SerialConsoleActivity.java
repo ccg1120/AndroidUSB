@@ -69,6 +69,9 @@ public class SerialConsoleActivity extends Activity {
     private CheckBox chkDTR;
     private CheckBox chkRTS;
 
+
+
+
     private final ExecutorService mExecutor = Executors.newSingleThreadExecutor();
 
     private SerialInputOutputManager mSerialIoManager;
@@ -102,6 +105,8 @@ public class SerialConsoleActivity extends Activity {
         chkDTR = (CheckBox) findViewById(R.id.checkBoxDTR);
         chkRTS = (CheckBox) findViewById(R.id.checkBoxRTS);
 
+
+
         chkDTR.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
@@ -119,6 +124,8 @@ public class SerialConsoleActivity extends Activity {
                 }catch (IOException x){}
             }
         });
+
+
 
     }
 

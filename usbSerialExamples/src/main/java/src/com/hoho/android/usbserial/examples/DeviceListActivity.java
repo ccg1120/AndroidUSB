@@ -24,6 +24,7 @@ package com.hoho.android.usbserial.examples;
 import android.app.Activity;
 import android.content.Context;
 import android.hardware.usb.UsbDevice;
+import android.hardware.usb.UsbDeviceConnection;
 import android.hardware.usb.UsbManager;
 import android.os.AsyncTask;
 import android.os.Bundle;
@@ -46,7 +47,10 @@ import com.hoho.android.usbserial.driver.UsbSerialPort;
 import com.hoho.android.usbserial.driver.UsbSerialProber;
 import com.hoho.android.usbserial.util.HexDump;
 
+import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 
 /**
@@ -66,6 +70,8 @@ public class DeviceListActivity extends Activity {
     private static final int MESSAGE_REFRESH = 101;
     private static final long REFRESH_TIMEOUT_MILLIS = 5000;
 
+    private TextView mTextViewConsole;
+    private TextView mTextViewConsole2;
     private final Handler mHandler = new Handler() {
         @Override
         public void handleMessage(Message msg) {
@@ -94,6 +100,8 @@ public class DeviceListActivity extends Activity {
         mListView = (ListView) findViewById(R.id.deviceList);
         mProgressBar = (ProgressBar) findViewById(R.id.progressBar);
         mProgressBarTitle = (TextView) findViewById(R.id.progressBarTitle);
+        mTextViewConsole = (TextView) findViewById(R.id.demoTitle);
+        mTextViewConsole2 = (TextView) findViewById(R.id.progressBarTitle1);
 
         mAdapter = new ArrayAdapter<UsbSerialPort>(this,
                 android.R.layout.simple_expandable_list_item_2, mEntries) {
@@ -136,9 +144,53 @@ public class DeviceListActivity extends Activity {
                 }
 
                 final UsbSerialPort port = mEntries.get(position);
-                showConsoleActivity(port);
+                //List<UsbSerialDriver> availableDrivers = UsbSerialProber.getDefaultProber().findAllDrivers(mUsbManager);
+
+                HashMap<String, UsbDevice> map = mUsbManager.getDeviceList();
+
+                Iterator itervalue = map.values().iterator();
+
+                UsbDevice device = mUsbManager.getDeviceList().get(itervalue.next());
+
+                List<UsbSerialDriver> availableDrivers = UsbSerialProber.getDefaultProber().findAllDrivers(mUsbManager);
+
+                UsbSerialDriver mDriver = availableDrivers.get(0);
+                List<UsbSerialPort> list = mDriver.getPorts();
+
+                mTextViewConsole2.setText(String.valueOf(list.toArray().length));
+
+                UsbSerialPort mPort = mDriver.getPorts().get(0);
+
+                mTextViewConsole.setText(String.valueOf(mUsbManager.hasPermission(mDriver.getDevice())));
+
+                UsbDeviceConnection connection = mUsbManager.openDevice(mDriver.getDevice());
+
+                if(connection != null)
+                {
+                    mTextViewConsole2.setText("Not null");
+                }
+                else
+                {
+                    mTextViewConsole2.setText("null");
+                }
+
+//                try
+//                {
+//                    mPort.open(connection);
+//                    mPort.setParameters(115200,0,0,0);
+//                }
+//                catch  (IOException e)
+//                {
+//                    mTextViewConsole.setText("Error");
+//                }
+                //mTextViewConsole.setText(port.getSerial());
+
+                //showConsoleActivity(port);
+                //port.open();
             }
         });
+
+
     }
 
     @Override
@@ -201,6 +253,7 @@ public class DeviceListActivity extends Activity {
 
     private void showConsoleActivity(UsbSerialPort port) {
         SerialConsoleActivity.show(this, port);
+
     }
 
 }
