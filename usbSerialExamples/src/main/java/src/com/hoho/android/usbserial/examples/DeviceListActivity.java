@@ -22,7 +22,11 @@
 package com.hoho.android.usbserial.examples;
 
 import android.app.Activity;
+import android.app.PendingIntent;
+import android.content.BroadcastReceiver;
 import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.hardware.usb.UsbDevice;
 import android.hardware.usb.UsbDeviceConnection;
 import android.hardware.usb.UsbManager;
@@ -72,6 +76,10 @@ public class DeviceListActivity extends Activity {
 
     private TextView mTextViewConsole;
     private TextView mTextViewConsole2;
+
+    private static final String ACTION_USB_PERMISSION =
+            "com.android.example.USB_PERMISSION";
+
     private final Handler mHandler = new Handler() {
         @Override
         public void handleMessage(Message msg) {
@@ -88,6 +96,7 @@ public class DeviceListActivity extends Activity {
 
     };
 
+    private  PendingIntent mPermissionIntent;
     private List<UsbSerialPort> mEntries = new ArrayList<UsbSerialPort>();
     private ArrayAdapter<UsbSerialPort> mAdapter;
 
@@ -95,6 +104,11 @@ public class DeviceListActivity extends Activity {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.main);
+
+
+        mPermissionIntent  = PendingIntent.getBroadcast(this, 0, new Intent(ACTION_USB_PERMISSION), 0);
+        IntentFilter filter = new IntentFilter(ACTION_USB_PERMISSION);
+        registerReceiver(mUsbReceiver, filter);
 
         mUsbManager = (UsbManager) getSystemService(Context.USB_SERVICE);
         mListView = (ListView) findViewById(R.id.deviceList);
@@ -143,6 +157,8 @@ public class DeviceListActivity extends Activity {
                     return;
                 }
 
+
+
                 final UsbSerialPort port = mEntries.get(position);
                 //List<UsbSerialDriver> availableDrivers = UsbSerialProber.getDefaultProber().findAllDrivers(mUsbManager);
 
@@ -156,6 +172,9 @@ public class DeviceListActivity extends Activity {
 
                 UsbSerialDriver mDriver = availableDrivers.get(0);
                 List<UsbSerialPort> list = mDriver.getPorts();
+
+
+
 
                 mTextViewConsole2.setText(String.valueOf(list.toArray().length));
 
@@ -171,6 +190,8 @@ public class DeviceListActivity extends Activity {
                 }
                 else
                 {
+
+                    mUsbManager.requestPermission(device,mPermissionIntent);
                     mTextViewConsole2.setText("null");
                 }
 
@@ -192,6 +213,27 @@ public class DeviceListActivity extends Activity {
 
 
     }
+
+    private final BroadcastReceiver mUsbReceiver = new BroadcastReceiver() {
+
+        public void onReceive(Context context, Intent intent) {
+            String action = intent.getAction();
+            if (ACTION_USB_PERMISSION.equals(action)) {
+                synchronized (this) {
+                    UsbDevice device = (UsbDevice)intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);
+
+                    if (intent.getBooleanExtra(UsbManager.EXTRA_PERMISSION_GRANTED, false)) {
+                        if(device != null){
+                            //call method to set up device communication
+                        }
+                    }
+                    else {
+                        Log.d(TAG, "permission denied for device " + device);
+                    }
+                }
+            }
+        }
+    };
 
     @Override
     protected void onResume() {
