@@ -35,6 +35,8 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
 import android.os.SystemClock;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -77,8 +79,14 @@ public class DeviceListActivity extends Activity {
     private TextView mTextViewConsole;
     private TextView mTextViewConsole2;
 
+    public ConsoleThread p;
+
     private static final String ACTION_USB_PERMISSION =
             "com.android.example.USB_PERMISSION";
+    private TextView viewer;
+   private  UsbSerialPort mPort;
+
+   public String ResultStr = "";
 
     private final Handler mHandler = new Handler() {
         @Override
@@ -104,6 +112,8 @@ public class DeviceListActivity extends Activity {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.main);
+
+        viewer = (TextView) findViewById(R.id.ConsoleView);
 
 
         mPermissionIntent  = PendingIntent.getBroadcast(this, 0, new Intent(ACTION_USB_PERMISSION), 0);
@@ -168,46 +178,67 @@ public class DeviceListActivity extends Activity {
 
                 UsbDevice device = mUsbManager.getDeviceList().get(itervalue.next());
 
+
+
                 List<UsbSerialDriver> availableDrivers = UsbSerialProber.getDefaultProber().findAllDrivers(mUsbManager);
 
+
                 UsbSerialDriver mDriver = availableDrivers.get(0);
-                List<UsbSerialPort> list = mDriver.getPorts();
 
-
-
-
-                mTextViewConsole2.setText(String.valueOf(list.toArray().length));
-
-                UsbSerialPort mPort = mDriver.getPorts().get(0);
 
                 mTextViewConsole.setText(String.valueOf(mUsbManager.hasPermission(mDriver.getDevice())));
 
-                UsbDeviceConnection connection = mUsbManager.openDevice(mDriver.getDevice());
+                if(mUsbManager.hasPermission(mDriver.getDevice())){
+                    p = new ConsoleThread( mDriver );
+                    p.start();
 
-                if(connection != null)
-                {
-                    mTextViewConsole2.setText("Not null");
+
+//                 connection = mUsbManager.openDevice(mDriver.getDevice());
+//
+//                if(connection != null)
+//                {
+//                    mTextViewConsole2.setText("Not null");
+//                    mPort = mDriver.getPorts().get(0);
+//                    try
+//                    {
+//                        mPort.open(connection);
+//
+//                        mPort.setParameters(115200, 8, UsbSerialPort.STOPBITS_1, UsbSerialPort.PARITY_NONE);
+//
+//                        byte buffer[] = new byte[16];
+//                        int numBytesRead = mPort.read(buffer, 1000);
+//
+//                        Log.d(TAG, "Read " + numBytesRead + " bytes.");
+//
+//                        mTextViewConsole.setText(buffer.toString());
+//
+//                        p.start();
+//
+//                    }
+//                    catch  (IOException e)
+//                    {
+//                        mTextViewConsole.setText("Error");
+//                    }
+//                    finally {
+//                        try {
+//                            mPort.close();
+//                        } catch (IOException e) {
+//                            e.printStackTrace();
+//                        }
+//                    }
                 }
                 else
                 {
-
-                    mUsbManager.requestPermission(device,mPermissionIntent);
+                    mUsbManager.requestPermission(mDriver.getDevice(),mPermissionIntent);
                     mTextViewConsole2.setText("null");
                 }
 
-//                try
-//                {
-//                    mPort.open(connection);
-//                    mPort.setParameters(115200,0,0,0);
-//                }
-//                catch  (IOException e)
-//                {
-//                    mTextViewConsole.setText("Error");
-//                }
-                //mTextViewConsole.setText(port.getSerial());
+
+
+
 
                 //showConsoleActivity(port);
-                //port.open();
+
             }
         });
 
@@ -253,7 +284,7 @@ public class DeviceListActivity extends Activity {
         new AsyncTask<Void, Void, List<UsbSerialPort>>() {
             @Override
             protected List<UsbSerialPort> doInBackground(Void... params) {
-                Log.d(TAG, "Refreshing device list ...");
+//                Log.d(TAG, "Refreshing device list ...");
                 SystemClock.sleep(1000);
 
                 final List<UsbSerialDriver> drivers =
@@ -262,8 +293,8 @@ public class DeviceListActivity extends Activity {
                 final List<UsbSerialPort> result = new ArrayList<UsbSerialPort>();
                 for (final UsbSerialDriver driver : drivers) {
                     final List<UsbSerialPort> ports = driver.getPorts();
-                    Log.d(TAG, String.format("+ %s: %s port%s",
-                            driver, Integer.valueOf(ports.size()), ports.size() == 1 ? "" : "s"));
+//                    Log.d(TAG, String.format("+ %s: %s port%s",
+//                            driver, Integer.valueOf(ports.size()), ports.size() == 1 ? "" : "s"));
                     result.addAll(ports);
                 }
 
@@ -284,6 +315,7 @@ public class DeviceListActivity extends Activity {
         }.execute((Void) null);
     }
 
+
     private void showProgressBar() {
         mProgressBar.setVisibility(View.VISIBLE);
         mProgressBarTitle.setText(R.string.refreshing);
@@ -294,8 +326,73 @@ public class DeviceListActivity extends Activity {
     }
 
     private void showConsoleActivity(UsbSerialPort port) {
-        SerialConsoleActivity.show(this, port);
-
+        com.hoho.android.usbserial.examples.SerialConsoleActivity.show(this, port);
     }
 
+    public class ConsoleThread extends Thread
+    {
+        private  UsbDeviceConnection connection;
+        private UsbSerialDriver mDriver;
+
+        public ConsoleThread(UsbSerialDriver driver)
+        {
+            mDriver = driver;
+        }
+
+        public void run()
+        {
+             connection = mUsbManager.openDevice(mDriver.getDevice());
+
+            if(connection != null)
+            {
+
+                mPort = mDriver.getPorts().get(0);
+                try
+                {
+                    mPort.open(connection);
+                    mPort.setParameters(115200, 8, UsbSerialPort.STOPBITS_1, UsbSerialPort.PARITY_NONE);
+
+//                    byte buffer[] = new byte[82];
+//                    int numBytesRead = mPort.read(buffer, 1000);
+                    //Log.d(TAG, "Read " + numBytesRead + " bytes.");
+                    step();
+                }
+                catch  (Exception e)
+                {
+                    Log.d(TAG, "run: Exception : Error " + e.toString());
+                }
+                finally {
+                    try {
+                        mPort.close();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+        }
+
+        private void step() throws Exception {
+            while (true)
+            {
+                if(mPort == null)
+                {
+                    Log.d(TAG, "step: mPort is Null");
+                    return;
+                }
+                if(connection == null)
+                {
+                    Log.d(TAG, "step: Connection is Null");
+                    return;
+                }
+                final byte buffer[] = new byte[82];
+                int numBytesRead = mPort.read(buffer, 1000);
+
+                if(numBytesRead > 0)
+                {
+                    String temp = new String(buffer);
+                    ResultStr = temp;
+                }
+            }
+        }
+    }
 }
