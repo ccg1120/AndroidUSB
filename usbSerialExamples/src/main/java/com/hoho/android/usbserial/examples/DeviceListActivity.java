@@ -83,10 +83,12 @@ public class DeviceListActivity extends Activity {
 
     private static final String ACTION_USB_PERMISSION =
             "com.android.example.USB_PERMISSION";
+    private  UsbSerialPort mPort;
+    public String ResultStr = "";
     private TextView viewer;
-   private  UsbSerialPort mPort;
 
-   public String ResultStr = "";
+
+
 
     private final Handler mHandler = new Handler() {
         @Override
@@ -167,24 +169,9 @@ public class DeviceListActivity extends Activity {
                     return;
                 }
 
-
-
-                final UsbSerialPort port = mEntries.get(position);
-                //List<UsbSerialDriver> availableDrivers = UsbSerialProber.getDefaultProber().findAllDrivers(mUsbManager);
-
-                HashMap<String, UsbDevice> map = mUsbManager.getDeviceList();
-
-                Iterator itervalue = map.values().iterator();
-
-                UsbDevice device = mUsbManager.getDeviceList().get(itervalue.next());
-
-
-
                 List<UsbSerialDriver> availableDrivers = UsbSerialProber.getDefaultProber().findAllDrivers(mUsbManager);
 
-
                 UsbSerialDriver mDriver = availableDrivers.get(0);
-
 
                 mTextViewConsole.setText(String.valueOf(mUsbManager.hasPermission(mDriver.getDevice())));
 

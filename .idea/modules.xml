@@ -5,6 +5,7 @@
       <module fileurl="file://$PROJECT_DIR$/AndroidUSB.iml" filepath="$PROJECT_DIR$/AndroidUSB.iml" />
       <module fileurl="file://$PROJECT_DIR$/usbSerialExamples/usbSerialExamples.iml" filepath="$PROJECT_DIR$/usbSerialExamples/usbSerialExamples.iml" />
       <module fileurl="file://$PROJECT_DIR$/usbSerialForAndroid/usbSerialForAndroid.iml" filepath="$PROJECT_DIR$/usbSerialForAndroid/usbSerialForAndroid.iml" />
+      <module fileurl="file://$PROJECT_DIR$/usbimu/usbimu.iml" filepath="$PROJECT_DIR$/usbimu/usbimu.iml" />
     </modules>
   </component>
 </project>
