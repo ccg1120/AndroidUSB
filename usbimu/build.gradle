@@ -8,10 +8,9 @@ android {
     defaultConfig {
         minSdkVersion 22
         targetSdkVersion 28
-        versionCode 1
-        versionName "1.0"
+        //ltiDexEnabled true
 
-        testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
+        //testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
 
     }
 
@@ -25,11 +24,14 @@ android {
 }
 
 dependencies {
-    compile fileTree(include: ['*.jar'], dir: 'libs')
-    compile 'com.android.support:appcompat-v7:28.0.0-rc02'
-    testCompile 'junit:junit:4.12'
-    androidTestCompile('com.android.support.test.espresso:espresso-core:3.0.2', {
-        exclude group: 'com.android.support', module: 'support-annotations'
-    })
-    compile project(path: ':usbSerialForAndroid')
+    //implementation  fileTree(include: ['*.jar'], dir: 'libs')
+    //implementation 'com.android.support:multidex:1.0.0'
+    implementation fileTree(dir: 'libs', include: ['*.jar'], exclude: ['classes.jar'])
+
+    //compileOnly files('libs/classes.jar')
+    //compileOnly files('./libs/classes.jar')
+    //    implementation 'com.android.support:appcompat-v7:28.0.0-rc02'
+    //    testImplementation 'junit:junit:4.12'
+    implementation project(path: ':usbSerialForAndroid')
+    //implementation files('libs/classes.jar')
 }

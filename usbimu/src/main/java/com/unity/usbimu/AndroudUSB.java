@@ -1,20 +1,16 @@
 package com.unity.usbimu;
 
-
 import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
-import android.content.ComponentName;
+
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.content.IntentSender;
-import android.content.res.Resources;
+
 import android.hardware.usb.UsbDevice;
 import android.hardware.usb.UsbDeviceConnection;
 import android.hardware.usb.UsbManager;
-import android.os.Bundle;
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
+
 import android.util.Log;
 import android.widget.ArrayAdapter;
 
@@ -28,10 +24,17 @@ import java.util.List;
 
 import static android.content.ContentValues.TAG;
 
-public abstract class AndroudUSB extends Context {
-    public String ResultStr = "";
-    public ConsoleThread p;
 
+public class AndroudUSB {
+
+    public static AndroudUSB _AndroidUSB;
+    public Context context;
+
+    public String ResultStr = "";
+    public Boolean OpenDeviceState = false;
+    public Boolean PermissionState = false;
+
+    private ConsoleThread p;
     private static final String ACTION_USB_PERMISSION = "com.android.example.USB_PERMISSION";
     private UsbSerialPort mPort;
 
@@ -41,29 +44,62 @@ public abstract class AndroudUSB extends Context {
     private List<UsbSerialPort> mEntries = new ArrayList<UsbSerialPort>();
     private ArrayAdapter<UsbSerialPort> mAdapter;
 
+    private List<UsbSerialDriver> availableDrivers;
+    private UsbSerialDriver mDriver;
+
+    private AndroudUSB()
+    {
+        //this._AndroidUSB = this;
+    }
+
+    public static AndroudUSB AndroidUSBinstance()
+    {
+        if(_AndroidUSB == null)
+        {
+            _AndroidUSB = new AndroudUSB();
+        }
+        return _AndroidUSB;
+    }
+
+    public void setContext()
+    {
+        Log.d(TAG, "setContext: UNITY CALL");
+        this.context = _AndroidUSB.context;
+    }
 
     public void Init()
     {
-        mPermissionIntent  = PendingIntent.getBroadcast(this, 0, new Intent(ACTION_USB_PERMISSION), 0);
+        Log.d(TAG, "Init: first");
+        mPermissionIntent  = PendingIntent.getBroadcast(context, 0, new Intent(ACTION_USB_PERMISSION), 0);
         IntentFilter filter = new IntentFilter(ACTION_USB_PERMISSION);
-        registerReceiver(mUsbReceiver, filter);
+        context.registerReceiver(mUsbReceiver, filter);
+
+        availableDrivers = UsbSerialProber.getDefaultProber().findAllDrivers(mUsbManager);
+        mDriver = availableDrivers.get(0);
+        PermissionCheck();
     }
 
-    public void IMUStart()
+
+
+    public void PermissionCheck()
     {
-        List<UsbSerialDriver> availableDrivers = UsbSerialProber.getDefaultProber().findAllDrivers(mUsbManager);
-
-        UsbSerialDriver mDriver = availableDrivers.get(0);
-        Log.d(TAG, "IMUStart: "+ String.valueOf(mUsbManager.hasPermission(mDriver.getDevice())));
-
         if(mUsbManager.hasPermission(mDriver.getDevice())){
-            p = new ConsoleThread( mDriver );
-            p.start();
+            PermissionState = true;
         }
         else
         {
             mUsbManager.requestPermission(mDriver.getDevice(),mPermissionIntent);
         }
+    }
+
+
+    public void IMUStart()
+    {
+
+        Log.d(TAG, "IMUStart: "+ String.valueOf(mUsbManager.hasPermission(mDriver.getDevice())));
+        p = new ConsoleThread( mDriver );
+        p.start();
+
     }
 
     private final BroadcastReceiver mUsbReceiver = new BroadcastReceiver() {
@@ -87,20 +123,6 @@ public abstract class AndroudUSB extends Context {
         }
     };
 
-    @Override
-    public Resources.Theme getTheme() {
-        return null;
-    }
-
-    @Override
-    public void startIntentSender(IntentSender intent, @Nullable Intent fillInIntent, int flagsMask, int flagsValues, int extraFlags) throws IntentSender.SendIntentException {
-
-    }
-
-    @Override
-    public boolean startInstrumentation(@NonNull ComponentName className, @Nullable String profileFile, @Nullable Bundle arguments) {
-        return false;
-    }
 
     public class ConsoleThread extends Thread {
         private UsbDeviceConnection connection;
@@ -117,6 +139,10 @@ public abstract class AndroudUSB extends Context {
                 mPort = mDriver.getPorts().get(0);
                 try {
                     mPort.open(connection);
+                    if(mPort != null)
+                    {
+                        OpenDeviceState = true;
+                    }
                     mPort.setParameters(115200, 8, UsbSerialPort.STOPBITS_1, UsbSerialPort.PARITY_NONE);
                     Log.d(TAG, "run: Step Start!!");
                     step();
@@ -125,6 +151,7 @@ public abstract class AndroudUSB extends Context {
                 } finally {
                     try {
                         mPort.close();
+                        OpenDeviceState = false;
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
